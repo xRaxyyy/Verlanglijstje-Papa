@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mijn Verlanglijstje</title>
+    <style>
+        :root {
+            --accent: #2563eb;
+            --accent-dark: #1d4ed8;
+            --accent-light: #93c5fd;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --danger: #ef4444;
+            --success: #10b981;
+            --purchased: #d1fae5;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+        
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid var(--accent-light);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+        
+        .loading-text {
+            font-size: 1.25rem;
+            color: var(--text-light);
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .container.loaded {
+            opacity: 1;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            position: relative;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+        
+        .subtitle {
+            color: var(--text-light);
+            font-weight: 400;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .admin-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background-color: var(--accent);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: none;
+        }
+        
+        .admin-badge.active {
+            display: block;
+        }
+        
+        .toggle-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+        
+        .toggle-label {
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: var(--accent);
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        
+        .login-container {
+            display: flex;
+            justify-content: center;
+            margin: 2rem 0;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .add-item-form {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            display: none;
+        }
+        
+        .add-item-form.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .form-title {
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+            color: var(--accent);
+            text-align: center;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .shop-input-container {
+            position: relative;
+        }
+        
+        label {
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-light);
+            font-weight: 500;
+        }
+        
+        input, select {
+            padding: 0.75rem 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            background: var(--card-bg);
+            color: var(--text);
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 1rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-primary {
+            background-color: var(--accent);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--accent-dark);
+            transform: translateY(-1px);
+        }
+        
+        .btn-block {
+            width: 100%;
+        }
+        
+        .wishlist {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .shop-group {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+        }
+        
+        .shop-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .shop-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        
+        .shop-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .item-card {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .show-purchased .item-card.has-purchases {
+            background-color: var(--purchased);
+            border-color: var(--success);
+        }
+        
+        .item-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+        
+        .item-image-container {
+            aspect-ratio: 1 / 1;
+            width: 100%; 
+            background: #f1f5f9;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .item-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+        
+        .item-content {
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+        
+        .item-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .item-price {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 1.25rem;
+        }
+        
+        .purchase-count {
+            position: absolute;
+            top: 0.5rem;
+            left: 0.5rem;
+            background-color: var(--success);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: none;
+        }
+        
+        .show-purchased .purchase-count {
+            display: block;
+        }
+        
+        .item-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: auto;
+            flex-wrap: wrap;
+        }
+        
+        .item-actions .btn {
+            flex: 1 1 100%;
+        }
+        
+        .btn-link {
+            text-align: center;
+            text-decoration: none;
+            background-color: var(--accent);
+            color: white;
+            transition: opacity 0.2s ease;
+        }
+        
+        .btn-link:hover {
+            background-color: var(--accent-dark);
+        }
+        
+        .btn-link.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .purchase-btn {
+            text-align: center;
+            background-color: var(--success);
+            color: white;
+        }
+        
+        .purchase-btn:hover {
+            background-color: #0d9c6e;
+        }
+        
+        .unpurchase-btn {
+            text-align: center;
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        .unpurchase-btn:hover {
+            background-color: #d11464;
+        }
+        
+        .admin-actions {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            display: none;
+            gap: 0.5rem;
+        }
+        
+        .admin-mode .admin-actions {
+            display: flex;
+        }
+        
+        .delete-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            color: var(--danger);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .delete-btn:hover {
+            background: var(--danger);
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-light);
+            grid-column: 1 / -1;
+            background: var(--card-bg);
+            border-radius: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px dashed #cbd5e1;
+        }
+        
+        .empty-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: #cbd5e1;
+        }
+        
+        .login-btn {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .login-btn:hover {
+            background-color: var(--accent-dark);
+            transform: translateY(-1px);
+        }
+        
+        .shop-suggestions {
+            position: absolute;
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0 0 0.5rem 0.5rem;
+            z-index: 10;
+            display: none;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        
+        .shop-suggestion {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+        }
+        
+        .shop-suggestion:hover {
+            background-color: #f1f5f9;
+        }
+        
+        @media (min-width: 640px) {
+            .item-actions .btn {
+                flex: 1 1 auto;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1.5rem 1rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .admin-badge {
+                position: static;
+                margin-top: 1rem;
+                display: inline-block;
+            }
+            
+            .admin-badge.active {
+                display: inline-block;
+            }
+            
+            .add-item-form {
+                padding: 1.5rem;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .shop-items {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Laden...</div>
+    </div>
+
+    <div class="container" id="mainContainer">
+        <header>
+            <h1>Mijn Verlanglijst</h1>
+            <p class="subtitle">Wat ik wil voor mijn verjaardag</p>
+            <div id="adminBadge" class="admin-badge">Beheermodus</div>
+        </header>
+        
+        <div id="loginContainer" class="login-container">
+            <button id="loginBtn" class="login-btn">Beheermodus openen</button>
+            <div class="toggle-container">
+                <span class="toggle-label">Toon gekochte items</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="togglePurchased">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+        
+        <div id="addItemForm" class="add-item-form">
+            <h2 class="form-title">Nieuw item toevoegen</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="itemName">Productnaam</label>
+                    <input type="text" id="itemName" placeholder="Bijv. Draadloze oortjes" required>
+                </div>
+                <div class="form-group">
+                    <label for="itemImage">Afbeeldings-URL</label>
+                    <input type="text" id="itemImage" placeholder="https://voorbeeld.com/foto.jpg" required>
+                </div>
+                <div class="form-group">
+                    <label for="itemPrice">Prijs (€)</label>
+                    <input type="number" id="itemPrice" placeholder="99.99" step="0.01" required>
+                </div>
+                <div class="form-group shop-input-container">
+                    <label for="itemShop">Winkel</label>
+                    <input type="text" id="itemShop" placeholder="Bijv. Amazon, Bol.com, lokale winkel" required>
+                    <div id="shopSuggestions" class="shop-suggestions"></div>
+                </div>
+                <div class="form-group">
+                    <label for="itemLink">Productlink (optioneel)</label>
+                    <input type="text" id="itemLink" placeholder="https://voorbeeld.com/product">
+                </div>
+            </div>
+            <button class="btn btn-primary btn-block" onclick="addItem()">
+                Item toevoegen
+            </button>
+        </div>
+        
+        <div class="wishlist" id="wishlist">
+            <div class="empty-state" id="emptyState">
+                <div class="empty-icon">🎁</div>
+                <h3>Nog geen items</h3>
+                <p>Voeg items toe in beheermodus</p>
+            </div>
+        </div>
+    </div>
+
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+
+<script>
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDJ09WwzJdgXt0QGhAzx6rUtHF1w9MyoAk",
+        authDomain: "verlanglijstje-b6c57.firebaseapp.com",
+        databaseURL: "https://verlanglijstje-b6c57-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "verlanglijstje-b6c57",
+        storageBucket: "verlanglijstje-b6c57.firebasestorage.app",
+        messagingSenderId: "750064793910",
+        appId: "1:750064793910:web:c0094bbe8311b7f9725b97",
+        measurementId: "G-SCEZTTMTX8"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const auth = firebase.auth();
+
+    // Configuration
+    const ADMIN_PASSWORD = "mijnwachtwoord";
+    
+    // DOM elements
+    const elements = {
+        loadingScreen: document.getElementById('loadingScreen'),
+        mainContainer: document.getElementById('mainContainer'),
+        adminBadge: document.getElementById('adminBadge'),
+        addItemForm: document.getElementById('addItemForm'),
+        loginContainer: document.getElementById('loginContainer'),
+        loginBtn: document.getElementById('loginBtn'),
+        wishlist: document.getElementById('wishlist'),
+        emptyState: document.getElementById('emptyState'),
+        itemName: document.getElementById('itemName'),
+        itemImage: document.getElementById('itemImage'),
+        itemPrice: document.getElementById('itemPrice'),
+        itemShop: document.getElementById('itemShop'),
+        itemLink: document.getElementById('itemLink'),
+        togglePurchased: document.getElementById('togglePurchased'),
+        shopSuggestions: document.getElementById('shopSuggestions')
+    };
+    
+    // Status
+    let isAdmin = localStorage.getItem('wishlistAdmin') === 'true';
+    let showPurchased = localStorage.getItem('showPurchased') === 'true';
+    let currentUser = null;
+    let previousShops = [];
+    
+    // Initialize the UI
+    function initUI() {
+        if (isAdmin) {
+            elements.adminBadge.classList.add('active');
+            elements.addItemForm.classList.add('active');
+            elements.loginBtn.textContent = 'Beheermodus afsluiten';
+            elements.wishlist.classList.add('admin-mode');
+        } else {
+            elements.adminBadge.classList.remove('active');
+            elements.addItemForm.classList.remove('active');
+            elements.loginBtn.textContent = 'Beheermodus openen';
+            elements.wishlist.classList.remove('admin-mode');
+        }
+        
+        // Set the toggle
+        elements.togglePurchased.checked = showPurchased;
+        updatePurchasedVisibility();
+        
+        // Load previous shops for autocomplete
+        loadPreviousShops();
+        
+        // Anonymous login for Firebase
+        auth.signInAnonymously()
+            .then(() => {
+                auth.onAuthStateChanged((user) => {
+                    if (user) {
+                        currentUser = user;
+                        loadItems();
+                    }
+                });
+            })
+            .catch((error) => {
+                console.error("Anonymous login failed:", error);
+                hideLoadingScreen();
+            });
+    }
+    
+    // Hide loading screen and show content
+    function hideLoadingScreen() {
+        elements.loadingScreen.style.opacity = '0';
+        setTimeout(() => {
+            elements.loadingScreen.style.display = 'none';
+            elements.mainContainer.classList.add('loaded');
+        }, 500);
+    }
+    
+    // Update purchased items visibility
+    function updatePurchasedVisibility() {
+        if (showPurchased) {
+            document.body.classList.add('show-purchased');
+        } else {
+            document.body.classList.remove('show-purchased');
+        }
+    }
+    
+    // Toggle purchased items
+    elements.togglePurchased.addEventListener('change', function() {
+        showPurchased = this.checked;
+        localStorage.setItem('showPurchased', showPurchased);
+        updatePurchasedVisibility();
+    });
+    
+    // Login/logout functionality
+    elements.loginBtn.addEventListener('click', function() {
+        if (isAdmin) {
+            // Logout
+            isAdmin = false;
+            localStorage.removeItem('wishlistAdmin');
+        } else {
+            // Login
+            const password = prompt('Voer het wachtwoord in voor beheermodus:');
+            if (password === ADMIN_PASSWORD) {
+                isAdmin = true;
+                localStorage.setItem('wishlistAdmin', 'true');
+            } else if (password !== null) {
+                alert('Ongeldig wachtwoord');
+                return;
+            } else {
+                return;
+            }
+        }
+        
+        initUI();
+    });
+    
+    // Load items on startup
+    document.addEventListener('DOMContentLoaded', initUI);
+
+    // Add item
+    async function addItem() {
+        if (!isAdmin) return;
+        
+        const name = elements.itemName.value.trim();
+        const image = elements.itemImage.value.trim();
+        const price = parseFloat(elements.itemPrice.value);
+        const shop = elements.itemShop.value.trim();
+        const link = elements.itemLink.value.trim();
+        
+        // Validation
+        if (!name || !image || isNaN(price) || !shop) {
+            alert('Vul alle verplichte velden in!');
+            return;
+        }
+        
+        if (!image.startsWith('http')) {
+            alert('Voer een geldige afbeeldings-URL in');
+            return;
+        }
+        
+        try {
+            const newItemRef = database.ref('wishlist').push();
+            await newItemRef.set({
+                name: name,
+                image: image,
+                price: price,
+                shop: shop,
+                link: link || '',
+                purchaseCount: 0,
+                purchasers: {},
+                id: newItemRef.key,
+                addedBy: currentUser.uid
+            });
+            
+            // Add to previousShops if not already there
+            if (!previousShops.includes(shop.toLowerCase())) {
+                previousShops.push(shop.toLowerCase());
+            }
+            
+            // Reset form
+            elements.itemName.value = '';
+            elements.itemImage.value = '';
+            elements.itemPrice.value = '';
+            elements.itemShop.value = '';
+            elements.itemLink.value = '';
+        } catch (error) {
+            console.error('Error adding item:', error);
+            alert('Er is een fout opgetreden bij het opslaan van het item');
+        }
+    }
+    
+    // Load previous shops for autocomplete
+    function loadPreviousShops() {
+        database.ref('wishlist').once('value').then((snapshot) => {
+            const shops = new Set();
+            snapshot.forEach((childSnapshot) => {
+                const shop = childSnapshot.val().shop;
+                if (shop) {
+                    shops.add(shop.toLowerCase());
+                }
+            });
+            previousShops = Array.from(shops);
+        });
+    }
+    
+    // Show shop suggestions based on input
+    function showShopSuggestions(input) {
+        elements.shopSuggestions.innerHTML = '';
+        
+        if (!input || input.length < 2) {
+            elements.shopSuggestions.style.display = 'none';
+            return;
+        }
+        
+        const filtered = previousShops.filter(shop => 
+            shop.includes(input.toLowerCase())
+        );
+        
+        if (filtered.length === 0) {
+            elements.shopSuggestions.style.display = 'none';
+            return;
+        }
+        
+        filtered.forEach(shop => {
+            const suggestion = document.createElement('div');
+            suggestion.className = 'shop-suggestion';
+            suggestion.textContent = shop;
+            suggestion.addEventListener('click', () => {
+                elements.itemShop.value = shop;
+                elements.shopSuggestions.style.display = 'none';
+            });
+            elements.shopSuggestions.appendChild(suggestion);
+        });
+        
+        elements.shopSuggestions.style.display = 'block';
+    }
+    
+    // Load items from Firebase
+    function loadItems() {
+        database.ref('wishlist').on('value', (snapshot) => {
+            const items = [];
+            snapshot.forEach((childSnapshot) => {
+                items.push({
+                    id: childSnapshot.key,
+                    ...childSnapshot.val()
+                });
+            });
+            
+            renderItems(items);
+            hideLoadingScreen();
+        }, (error) => {
+            console.error('Error loading items:', error);
+            hideLoadingScreen();
+        });
+    }
+    
+    // Render items grouped by shop
+    function renderItems(items) {
+        if (items.length === 0) {
+            elements.wishlist.innerHTML = '';
+            elements.wishlist.appendChild(elements.emptyState);
+            elements.emptyState.style.display = 'block';
+            return;
+        }
+        
+        // Group items by shop
+        const shops = {};
+        items.forEach(item => {
+            const shop = item.shop || 'Anders';
+            if (!shops[shop]) {
+                shops[shop] = [];
+            }
+            shops[shop].push(item);
+        });
+        
+        elements.wishlist.innerHTML = '';
+        
+        // Sort shops alphabetically
+        const sortedShops = Object.keys(shops).sort();
+        
+        sortedShops.forEach(shopName => {
+            const shopItems = shops[shopName];
+            
+            const shopGroup = document.createElement('div');
+            shopGroup.className = 'shop-group';
+            
+            const shopHeader = document.createElement('div');
+            shopHeader.className = 'shop-header';
+            shopHeader.innerHTML = `<h2 class="shop-name">${shopName}</h2>`;
+            
+            const shopItemsContainer = document.createElement('div');
+            shopItemsContainer.className = 'shop-items';
+            
+            shopGroup.appendChild(shopHeader);
+            shopGroup.appendChild(shopItemsContainer);
+            elements.wishlist.appendChild(shopGroup);
+            
+            // Sort items by name
+            shopItems.sort((a, b) => a.name.localeCompare(b.name));
+            
+            shopItems.forEach((item) => {
+                const hasPurchases = item.purchaseCount > 0;
+                const isOwner = currentUser && item.addedBy === currentUser.uid;
+                
+                const itemElement = document.createElement('div');
+                itemElement.className = `item-card ${hasPurchases ? 'has-purchases' : ''}`;
+                itemElement.innerHTML = `
+                    <div class="item-image-container">
+                        <img src="${item.image}" alt="${item.name}" class="item-image" onerror="this.src='https://via.placeholder.com/400?text=Geen+afbeelding'">
+                        ${hasPurchases ? `<div class="purchase-count">${item.purchaseCount} ${item.purchaseCount === 1 ? 'keer' : 'keer'}</div>` : ''}
+                        ${(isOwner || isAdmin) ? `
+                        <div class="admin-actions">
+                            <button class="delete-btn" onclick="deleteItem('${item.id}', event)" title="Verwijderen">
+                                ✕
+                            </button>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="item-content">
+                        <h3 class="item-title">${item.name}</h3>
+                        <div class="item-price">€${item.price.toFixed(2)}</div>
+                        <div class="item-actions">
+                            <button class="btn purchase-btn" onclick="incrementPurchaseCount('${item.id}')">
+                                +1 Koper
+                            </button>
+                            <button class="btn unpurchase-btn" onclick="decrementPurchaseCount('${item.id}', event)">
+                                -1 Koper
+                            </button>
+                            <a href="${item.link || '#'}" target="_blank" class="btn btn-link ${!item.link ? 'hidden' : ''}">Bekijk</a>
+                        </div>
+                    </div>
+                `;
+                shopItemsContainer.appendChild(itemElement);
+            });
+        });
+    }
+    
+    // Increment purchase count
+    async function incrementPurchaseCount(id) {
+        if (!currentUser) return;
+        
+        try {
+            const itemRef = database.ref(`wishlist/${id}`);
+            const snapshot = await itemRef.once('value');
+            const item = snapshot.val();
+            
+            // Update purchaseCount and add user to purchasers
+            const updates = {
+                purchaseCount: (item.purchaseCount || 0) + 1,
+                [`purchasers/${currentUser.uid}`]: (item.purchasers?.[currentUser.uid] || 0) + 1
+            };
+            await itemRef.update(updates);
+            
+        } catch (error) {
+            console.error('Error incrementing purchase count:', error);
+        }
+    }
+    
+    // Decrement purchase count
+    async function decrementPurchaseCount(id, event) {
+        if (!currentUser) return;
+        if (event) event.stopPropagation();
+        
+        try {
+            const itemRef = database.ref(`wishlist/${id}`);
+            const snapshot = await itemRef.once('value');
+            const item = snapshot.val();
+            
+            // Check if user has purchased this item
+            const userPurchases = item.purchasers?.[currentUser.uid] || 0;
+            
+            if (userPurchases > 0) {
+                const updates = {
+                    purchaseCount: (item.purchaseCount || 0) - 1,
+                    [`purchasers/${currentUser.uid}`]: userPurchases - 1
+                };
+                
+                if (userPurchases === 1) {
+                    updates[`purchasers/${currentUser.uid}`] = null;
+                }
+                
+                await itemRef.update(updates);
+            }
+        } catch (error) {
+            console.error('Error decrementing purchase count:', error);
+        }
+    }
+    
+    // Delete item
+    async function deleteItem(id, event) {
+        if (!currentUser) return;
+        
+        event.stopPropagation();
+        
+        const itemRef = database.ref(`wishlist/${id}`);
+        const snapshot = await itemRef.once('value');
+        const item = snapshot.val();
+        
+        // Check if user is admin OR owner of the item
+        if (!isAdmin && (!item || item.addedBy !== currentUser.uid)) {
+            alert('Alleen beheerders of de eigenaar kunnen items verwijderen');
+            return;
+        }
+        
+        if (!confirm('Weet je zeker dat je dit item wilt verwijderen?')) {
+            return;
+        }
+        
+        try {
+            await itemRef.remove();
+        } catch (error) {
+            console.error('Error deleting item:', error);
+        }
+    }
+    
+    // Event listeners for shop suggestions
+    elements.itemShop.addEventListener('input', (e) => {
+        showShopSuggestions(e.target.value);
+    });
+    
+    elements.itemShop.addEventListener('focus', (e) => {
+        showShopSuggestions(e.target.value);
+    });
+    
+    document.addEventListener('click', (e) => {
+        if (e.target.id !== 'itemShop') {
+            elements.shopSuggestions.style.display = 'none';
+        }
+    });
+</script>
+</body>
+</html>
